@@ -1,0 +1,1014 @@
+---
+title: "Data Visualization Coursework 2"
+author: "Shanon Mwangi"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    latex_engine: xelatex
+  word_document:
+    toc: true
+    toc_depth: '3'
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Decarbonisation and the Electricity Transition in the UK
+
+# Project Summary
+
+This report examines the decarbonisation of the United Kingdom’s electricity system between 2000 and 2025, focusing on the transition from fossil fuel–based generation toward low-carbon sources. Electricity plays a central role in achieving climate targets, and understanding how its composition has evolved is critical for evaluating progress toward a sustainable energy system. Using the Our World in Data – Energy dataset, this study applies exploratory data analysis techniques to investigate changes in the UK’s electricity mix, carbon intensity, and broader energy demand patterns.
+
+The analysis explores how the share of electricity generated from fossil fuels has declined over time, how low-carbon sources have expanded and reshaped the generation mix, and whether reductions in energy consumption per capita reflect structural efficiency improvements or broader economic shifts. The findings show a substantial decline in coal’s contribution to electricity generation, alongside rapid growth in low-carbon sources, with a key transition point occurring around 2017 when low-carbon electricity surpassed fossil fuels. This shift has contributed to a significant reduction in carbon intensity.
+
+However, the transition remains incomplete. Natural gas continues to play a significant role in electricity generation, highlighting ongoing reliance on fossil fuels. Furthermore, reductions in energy consumption per capita may reflect not only efficiency gains but also structural economic changes, including deindustrialisation. Overall, the findings illustrate both the scale of progress achieved and the challenges that remain in delivering a fully decarbonised and resilient electricity system.
+
+
+# Background
+
+Electricity is a fundamental component of modern economies, underpinning industrial activity, digital infrastructure, and everyday life. However, its generation has historically relied on fossil fuels such as coal, oil, and natural gas, making the electricity sector a major contributor to greenhouse gas emissions and environmental degradation (Stern, 2007; IPCC, 2022). As a result, decarbonising electricity systems has become a central objective of global climate policy, and is closely aligned with the United Nations Sustainable Development Goals, particularly SDG 7 (Affordable and Clean Energy) and SDG 13 (Climate Action).
+
+The United Kingdom has emerged as a leading case in this transition. Through the Climate Change Act and its legally binding commitment to achieve net-zero emissions by 2050, the UK has implemented policies aimed at reducing carbon intensity and transforming its electricity mix (UK Government, 2019; Climate Change Committee, 2023). This has led to a rapid decline in coal-fired generation and a significant expansion of renewable energy, particularly wind power (International Energy Agency, 2022; Ember, 2023).
+
+Despite this progress, the transition is not without challenges. The UK electricity system continues to rely on natural gas to ensure grid stability, highlighting the difficulty of fully eliminating fossil fuels. In addition, reductions in overall energy consumption may not solely reflect efficiency improvements but could also be influenced by broader structural changes, such as deindustrialisation and shifts toward a service-based economy (Barrett et al., 2022; Sovacool et al., 2019). These factors complicate the interpretation of decarbonisation trends and underscore the importance of careful data-driven analysis.
+
+To investigate these dynamics, this report uses the Our World in Data – Energy dataset, which compiles data from sources including the BP Statistical Review of World Energy, the International Energy Agency, and Ember (Our World in Data, 2024). The dataset provides annual country-level observations on electricity generation by source, carbon intensity, and energy consumption, enabling a detailed exploration of the UK’s electricity transition between 2000 and 2025.
+
+This study examines how the share of electricity generated from fossil fuels has evolved between 2000 and 2025, with particular attention to how the trajectories of coal and natural gas differ over this period. It further explores how the share of electricity generated from low-carbon sources has changed over time and whether it has overtaken fossil fuels in the overall generation mix. Finally, the analysis investigates how the carbon intensity of electricity has developed, and whether the observed trend reflects a process of structural decarbonisation within the UK power sector, contributing to broader sustainable development objectives.
+
+
+```{r echo=FALSE, results='asis'}
+library(knitr)
+kable(
+  data.frame(
+    Attribute = c("Source", "Country", "Time period",
+                  "Unit of energy", "Observations"),
+    Value     = c("Our World in Data - Energy dataset",
+                  "United Kingdom",
+                  "2000 - 2025",
+                  "Terawatt-hours (TWh) unless noted",
+                  "26 (one per year)")
+  ),
+  caption = "Table 1. Key dataset characteristics."
+)
+```
+
+
+# Methodology
+
+The following section presents a series of visualisations designed to explore trends and relationships within the dataset and to answer the research questions outlined above. The analysis proceeds in four stages: package loading, data loading and structural inspection, variable selection and cleaning, and finally descriptive statistics. The visualisations and their interpretations follow in the Results section.
+
+
+## List of R packages required for this coursework will be loaded
+
+The following packages are required for this analysis:
+
+* tidyverse: A collection of R packages for data manipulation and visualisation, including dplyr, ggplot2, and tidyr. The majority of data wrangling and all visualisations in this work are built on tidyverse functions, making this the most essential dependency.
+
+* ggplot2 (loaded via tidyverse): The primary visualisation engine used throughout this report. Its layered grammar of graphics allows precise control over chart composition, which is particularly important when annotating policy events on time series plots.
+
+* scales: Provides helper functions for formatting axis labels, for example, rendering percentage signs on share variables and comma-separated thousands on consumption figures. Without this package, axis labels would be less readable and less professional in appearance.
+
+* patchwork: Used to combine multiple ggplot2 panels into a single composite figure. This is particularly useful in the preliminary exploration section, where four line plots are arranged in a two-by-two grid to allow direct visual comparison across variables.
+
+* knitr: Required to produce formatted tables within the R Markdown document using the kable() function. This is used to present the dataset characteristics table and the descriptive statistics table in a clean, readable format.
+
+*	ggrepel: Used to add non-overlapping text labels to scatter plots. In Visualisation 3, selected year labels are placed adjacent to data points; without ggrepel, these labels would frequently overlap and obscure the underlying data.
+
+
+```{r packages}
+library(tidyverse)   # data wrangling + ggplot2
+library(scales)      # axis formatting helpers
+library(patchwork)   # combining ggplot panels
+library(knitr)       # kable tables
+library(ggrepel)     # non-overlapping text labels
+```
+
+## Data Loading
+
+The dataset is read into R from a local CSV file using read_csv() from the readr package (loaded as part of tidyverse). We load Our World in Data data set in the code chunk below
+
+
+```{r load-data}
+# Load the data set
+owid     <- read_csv("owid-energy-data.csv")
+
+```
+To explore the data, there is a need to understand the properties of each of the variables that make up the data set by first taking a glimpse of the data set, which will print the number of rows and columns and brief details of each variable
+
+```{r}
+# To have a glimpse of the dataset
+glimpse(owid)
+
+```
+
+Also to get a glimpse of the summary statistics of the respective variables that make up the data set "summary" function will be utilized to print the summary statistics of each of the variables, this will give insights into the distributions of the respective variables.
+
+```{r}
+# To print the summary statistics of the data set
+summary(owid)
+```
+The above code chunk has revealed the type of variables that make up the Our World in Data data set, the missing values and the summary statistics of each numerical variable.
+From the code chunk, it was observed that the number of columns and variables in this data is 130, while the number of rows is 23,232.
+
+```{r}
+# Sum of missing values
+sum(is.na(owid))
+```
+It was also observed that the data set has 1988709  missing values which will be dealt with in various sections of this course work.
+
+From a careful analysis of each variables' summary statistics and characteristics and their attributes, it is evident that answering the questions below and as captured in the introduction about the Decarbonisation and the Electricity Transition in the UK is reasonably possible.
+
+1. How has the share of electricity generated from fossil fuels changed between 2000 and 2025, and how do the individual trajectories of coal and natural gas compare during this transition?
+
+2. How has the share of electricity generated from low-carbon sources changed over time, has it surpassed fossil fuels, and which technologies have driven this transition?
+
+3. How has the carbon intensity of electricity evolved over time, and does the trend indicate a structural decarbonisation of the UK power sector?
+
+
+The full Our World in Data Energy dataset covers all countries, we will therefore need to start by filtering the variables to only the United Kingdom since that is what our work will be focusing on.
+
+```{r}
+# Filter to United Kingdom
+uk_data  <- owid %>% filter(country == "United Kingdom")
+# To get a glimpse of the uk_data
+glimpse(uk_data)
+```
+
+Once we filter to UK our data set now has 130 columns and 126 rows.
+
+```{r}
+# Summary of UK data
+summary(uk_data)
+# Total number of missing values
+sum(is.na(uk_data))
+
+```
+The above code chunk has revealed the type of variables that make up the uk_data, the missing values and the summary statistics of each numerical variable.
+It was also observed that the missing values have now reduced to 8437.
+Based on the uk_data most of the data before 2000 is missing and we will not be able to make a comprehensive analysis, therefore we will drop the data before 2000. In the code chunk below we filter our data to the years 2000 onwards.
+
+
+```{r}
+# Filter to years 2000 onwards
+uk_energy <- uk_data %>%
+  filter(year >= 2000)
+# Glimpse of uk energy
+glimpse(uk_energy)
+```
+
+From the code chunk above, once we filter to years 2000 onwards, our data set reduces to 130 columns and 126 rows.
+
+```{r}
+# Summary of UK data
+summary(uk_energy)
+# Total number of missing values
+sum(is.na(uk_energy))
+
+```
+
+
+The above code chunk has revealed the type of variables that make up the uk_energy dataset, the missing values and the summary statistics of each numerical variable.
+It was also observed that the missing values have now reduced to 105.
+
+From the research questions, it is clear that we only need the following variables to answer our research questions above.
+
+* year
+* gdp
+* coal_share_elec
+* gas_share_elec
+* oil_share_elec
+* fossil_share_elec
+* nuclear_share_elec
+* wind_share_elec
+* solar_share_elec
+* hydro_share_elec
+* biofuel_share_elec
+* carbon_intensity_elec
+* energy_per_capita
+
+Therefore, we only select the desired variables in the code chunk below
+
+
+```{r}
+
+uk_electricity <- uk_energy %>%
+  select(
+      year,
+      gdp,
+      
+      # Fossil fuels (electricity-based)
+      coal_share_elec,
+      gas_share_elec,
+      oil_share_elec,
+      
+      # Overall mix
+      fossil_share_elec,
+      
+      # Low-carbon breakdown
+      nuclear_share_elec,
+      wind_share_elec,
+      solar_share_elec,
+      hydro_share_elec,
+      biofuel_share_elec,
+      
+      # Outcomes
+      carbon_intensity_elec,
+      energy_per_capita
+  )
+
+glimpse(uk_electricity)
+
+```
+From the above code chunk, it was observed that the number of columns and variables in our desired data set is 13 columns and 26 rows. We have selected variables that showcase the fossil fuels share of electricity generated, Low-carbon breakdown and outcomes of the electricity generated. 
+
+To get a clearer picture of the type of variables that make up the data set, there is need to apply "sapply" function which will print the data class of the respective variable
+
+```{r}
+# Print the class of each column in uk_electricity
+sapply(uk_electricity, class)
+
+```
+
+
+## Characteristics of Variables of Interest
+
+
+* **fossil_share_elec** (share variable, %):
+This variable captures the overall contribution of fossil fuels (coal, gas, and oil) to electricity generation and serves as the primary indicator for RQ1. It provides a high-level view of the decline of fossil fuels in the power sector and enables direct comparison with low-carbon sources over time.
+
+* **coal_share_elec, gas_share_elec, and oil_share_elec** (share variables, %):
+These variables disaggregate fossil fuel electricity into its key components, allowing for a more nuanced analysis of the transition. Coal is particularly important due to its high carbon intensity, while natural gas often acts as a transitional fuel. Although oil contributes only a small share of electricity generation, it is retained to demonstrate its negligible and declining role, ensuring completeness in the fossil fuel category.
+
+* **nuclear_share_elec, wind_share_elec, solar_share_elec, hydro_share_elec, and biofuel_share_elec** (share variables, %):
+These variables collectively represent the low-carbon electricity mix and are central to RQ2. Low-carbon energy is defined here as the combination of nuclear and renewable sources. Disaggregating these components allows for deeper insight into which technologies are driving the transition, revealing, for example, the rapid growth of wind and solar relative to more stable sources such as nuclear and hydro.
+
+It is important to note that while biofuels are classified as renewable, they differ from other renewables in that they involve combustion and therefore produce direct emissions, highlighting that not all low-carbon sources are emission-free.
+
+* **carbon_intensity_elec** (intensity variable, gCO₂/kWh):
+This variable provides a direct measure of the environmental performance of the electricity system and is a key indicator of decarbonisation. Unlike share-based variables, it captures the combined effect of changes in the energy mix and improvements in generation efficiency, making it highly relevant for evaluating the overall impact of the transition (Bruns et al., 2020).
+
+* **energy_per_capita** (per-capita consumption variable, kWh):
+This variable addresses RQ3 by capturing trends in overall energy demand while controlling for population size. It enables the analysis to distinguish between structural changes in energy use and fluctuations driven by external factors such as economic cycles or shocks (e.g., the COVID-19 pandemic). However, as it reflects total energy consumption rather than electricity alone, its interpretation should be made cautiously in the context of an electricity-focused analysis.
+
+* **gdp** (economic indicator, constant USD):
+Gross Domestic Product is included to provide economic context for changes in energy demand and electricity consumption. It supports the interpretation of RQ3 by helping to distinguish whether observed changes in energy use are associated with economic growth, structural shifts in the economy, or efficiency improvements.
+
+
+
+# Exploration of Various variables in UK Electricity Data Set
+
+
+The dataset used in this analysis is a time series covering the period from 2000 to 2025, with 13 variables capturing changes in electricity generation, economic activity, and environmental outcomes. Before directly addressing the research questions, it is important to first explore how these variables behave over time. This helps to identify key trends, spot any irregularities, and guide the choice of appropriate visualisations.
+
+Since the data is time-based, the analysis focuses on how values evolve over time, including long-term trends, turning points, and shifts in relationships between variables. As a result, the exploratory stage relies mainly on trend-based and comparative visualisations, which provide a clear view of how the UK’s electricity system has changed.
+
+Each visualisation is designed with a specific purpose in mind, linking observed patterns in the data to broader structural changes in the UK electricity sector and directly supporting the research questions.
+
+
+## Fossil Fuels vs. Low-Carbon Sources
+
+To examine overall electricity trends in the UK, this section compares how fossil fuels and low-carbon sources have evolved over time. This begins by grouping the variables that make up low-carbon sources into a single combined measure.
+
+The code chunk below combines the nuclear,wind,solar,hydro and biofuel to form low_carbon_share
+
+```{r}
+# We clean our data by grouping together variables that fall under Low Carbon Share.
+uk_electricity <- uk_electricity %>% 
+  mutate( 
+    low_carbon_share = nuclear_share_elec + 
+                       wind_share_elec + 
+                       solar_share_elec + 
+                       hydro_share_elec + 
+                       biofuel_share_elec 
+  ) 
+```
+
+
+```{r}
+summary_tbl <- uk_electricity %>%
+  select(
+    `Fossil share of electricity (%)` = fossil_share_elec,
+    `Coal share of electricity (%)`   = coal_share_elec,
+    `Low-carbon share (%)`            = low_carbon_share,
+    `Carbon intensity (gCO2/kWh)`     = carbon_intensity_elec,
+    `Energy per capita (kWh)`         = energy_per_capita
+  ) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "value") %>%
+  group_by(Variable) %>%
+  summarise(
+    Min    = round(min(value, na.rm = TRUE), 1),
+    Mean   = round(mean(value, na.rm = TRUE), 1),
+    Median = round(median(value, na.rm = TRUE), 1),
+    Max    = round(max(value, na.rm = TRUE), 1),
+    SD     = round(sd(value, na.rm = TRUE), 1)
+  )
+
+kable(summary_tbl,
+      caption = "Table 2. Descriptive statistics for key variables (2000–2025).")
+```
+
+Key observations from Table 2:
+
+* Fossil share of electricity ranges from approximately 35% to 81%, a 46-percentage-point range with a high standard deviation, consistent with sustained structural change rather than cyclical variation.
+Coal share ranges from under 1% to over 39%, confirming near-complete elimination by the end of the study period.
+* Low-carbon share ranges from approximately 19% to 65%, with the upward trajectory being the mirror image of the fossil decline.
+* Carbon intensity has a mean of approximately 404 gCO₂/kWh but a 2025 value of 217 gCO₂/kWh, confirming that the most dramatic decarbonisation occurred in the latter half of the period.
+* Energy per capita shows a large standard deviation relative to its range, indicating substantial year-to-year variation that warrants caution when attributing the decline to any single cause.
+
+
+To understand the overall direction of change in the UK electricity system, a line plot is used to visualise these trends over time.
+
+```{r}
+
+label_years <- seq(2000, 2025, 5)
+
+uk_trend <- uk_electricity %>%
+  mutate(label = if_else(year %in% label_years,
+                         as.character(year), NA_character_))
+
+# Extract 2017 point for annotation
+label_2017 <- uk_trend %>%
+  filter(year == 2017)
+
+ggplot(uk_trend, aes(x = year)) +
+
+  geom_line(aes(y = fossil_share_elec, colour = "Fossil fuels"),
+            linewidth = 0.8) +
+
+  geom_line(aes(y = low_carbon_share, colour = "Low-carbon"),
+            linewidth = 0.8) +
+
+  geom_point(aes(y = fossil_share_elec, colour = "Fossil fuels"),
+           size = 2, alpha = 0.7) +
+
+geom_point(aes(y = low_carbon_share, colour = "Low-carbon"),
+           size = 2, alpha = 0.7) +
+
+  # Highlight crossover with vertical line
+  geom_vline(xintercept = 2017, linetype = "dashed", colour = "grey50") +
+
+  # Label directly on the line (2017)
+  geom_text_repel(
+    data = label_2017,
+    aes(y = low_carbon_share,
+        label = "2017: Low-carbon > Fossil"),
+    nudge_y = 25,
+    colour = "#27ae60",
+    size = 3.5,
+ 
+  ) +
+
+  scale_colour_manual(values = c(
+    "Fossil fuels" = "#c0392b",
+    "Low-carbon" = "#27ae60"
+  )) +
+
+  scale_x_continuous(breaks = seq(2000, 2025, 5)) +
+  scale_y_continuous(labels = scales::label_percent(scale = 1),
+                     limits = c(0, 100)) +
+
+  labs(
+    title    = "Transition in UK Electricity Generation Mix (2000–2025)",
+    subtitle = "Low-carbon sources overtook fossil fuels around 2017",
+    x        = "Year",
+    y        = "Share of electricity generation (%)",
+    colour   = NULL,
+    caption  = "Source: Our World in Data – Energy dataset"
+  ) +
+
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14),
+    plot.subtitle    = element_text(colour = "grey40"),
+    panel.grid.minor = element_blank(),
+    legend.position  = "top"
+  )
+
+```
+The evolution of the UK electricity sector between 2000 and 2025 shows a clear and gradual shift toward decarbonisation, rather than a single sudden change. In the early period (roughly 2000 to 2008), there is little evidence of progress. Fossil fuels consistently dominate electricity generation, accounting for around 75–80% of the mix, while low-carbon sources remain relatively flat or even decline slightly. This suggests that early climate policies had limited immediate impact, and that meaningful change had not yet begun.
+
+The transition becomes more visible in the 2010s, particularly after 2012, when the pace of change accelerates. During this period, fossil fuel use declines rapidly while low-carbon sources expand significantly, indicating a structural shift in how electricity is generated. This aligns with the combined effects of policy interventions, such as carbon pricing, and the rapid growth of renewable technologies like wind.
+
+A key turning point occurs around 2016–2017, when low-carbon electricity overtakes fossil fuels for the first time. This marks a fundamental shift in the UK’s power system, where cleaner sources become the dominant form of generation. While there is some short-term variation around 2020, partly influenced by the COVID-19 pandemic and reduced electricity demand, the overall trend remains consistent, and the system quickly returns to its longer-term trajectory.
+
+By 2025, the UK appears to have entered a new phase, where low-carbon sources make up the majority of electricity generation, stabilising at around 60–65%. At the same time, fossil fuels take on a more limited, supporting role rather than being the primary source of power. This shift highlights that decarbonisation in the UK electricity sector is not just a temporary trend, but a sustained and structural transformation.
+
+This supports Research Question 1 by showing the overall decline in fossil fuel electricity and the point at which low-carbon sources became dominant in the UK electricity mix.
+
+```{r}
+
+
+label_years <- seq(2000, 2025, 5)
+
+uk_trend <- uk_electricity %>%
+  mutate(label = if_else(year %in% label_years,
+                         as.character(year), NA_character_))
+
+label_2017 <- uk_trend %>%
+  filter(year == 2017)
+
+p <- ggplot(uk_trend, aes(x = year)) +
+
+  # Lines (thicker for poster visibility)
+  geom_line(aes(y = fossil_share_elec, colour = "Fossil fuels"),
+            linewidth = 1.5) +
+
+  geom_line(aes(y = low_carbon_share, colour = "Low-carbon"),
+            linewidth = 1.5) +
+
+  # Points (slightly bigger)
+  geom_point(aes(y = fossil_share_elec, colour = "Fossil fuels"),
+             size = 3) +
+
+  geom_point(aes(y = low_carbon_share, colour = "Low-carbon"),
+             size = 3) +
+
+  # Vertical line (more subtle but visible)
+  geom_vline(xintercept = 2017,
+             linetype = "dashed",
+             colour = "grey40",
+             linewidth = 1) +
+
+  # Annotation (clear + readable)
+  geom_text_repel(
+    data = label_2017,
+    aes(y = low_carbon_share,
+        label = "2017: Low-carbon overtakes fossil fuels"),
+    size = 5,
+    fontface = "bold",
+    colour = "#27AE60",
+    nudge_y = 30
+  ) +
+
+  # Colour palette (consistent with poster)
+  scale_colour_manual(values = c(
+    "Fossil fuels" = "#C0392B",   # red
+    "Low-carbon"   = "#27AE60"    # green
+  )) +
+
+  # Axes
+  scale_x_continuous(breaks = seq(2000, 2025, 5)) +
+  scale_y_continuous(
+    labels = label_percent(scale = 1),
+    limits = c(0, 100)
+  ) +
+
+  # Labels (simplified for non-expert audience)
+  labs(
+    title    = "UK Electricity Transition",
+    subtitle = "Low-carbon energy overtook fossil fuels around 2017",
+    x        = NULL,
+    y        = "Share of electricity (%)",
+    colour   = NULL,
+    caption  = "Source: Our World in Data"
+  ) +
+
+  # CLEAN POSTER THEME
+  theme_minimal(base_size = 18) +
+
+  theme(
+  # Titles
+  plot.title    = element_text(size = 26, face = "bold"),
+  plot.subtitle = element_text(size = 18, colour = "grey30"),
+
+  # Axis text
+  axis.text  = element_text(size = 14),
+  axis.title = element_text(size = 16),
+
+  # Legend
+  legend.position = "top",
+  legend.text     = element_text(size = 14),
+
+  # Remove clutter
+  panel.grid.minor = element_blank(),
+  panel.grid.major.x = element_blank(),
+
+  # Caption
+  plot.caption = element_text(size = 12, colour = "grey40"),
+
+  # ✅ TRANSPARENT BACKGROUND
+  plot.background  = element_rect(fill = "transparent", colour = NA),
+  panel.background = element_rect(fill = "transparent", colour = NA)
+)
+
+p
+```
+
+```{r}
+ggsave(
+  "uk_transition_plot.pdf",
+  plot = p,
+  width = 12,
+  height = 7
+)
+```
+
+```{r}
+ggsave(
+  "uk_transition_plot.png",
+  plot = p,
+  width = 12,
+  height = 7,
+  dpi = 300,
+  bg = "transparent"
+)
+```
+
+## Internal Dynamics of Fossil Fuel Decline
+While Visualisation 1 shows the overall fossil vs low-carbon split, it does not reveal how coal and gas have behaved differently within the fossil category. A stacked area chart for the three fossil fuels allows direct comparison of their relative contributions over time, making their divergent trajectories immediately apparent.
+
+
+
+```{r}
+uk_fossil_long <- uk_electricity %>%
+  select(year, coal_share_elec, gas_share_elec, oil_share_elec) %>%
+  pivot_longer(-year, names_to = "source", values_to = "share") %>%
+  mutate(source = recode(source,
+    coal_share_elec = "Coal",
+    gas_share_elec  = "Natural gas",
+    oil_share_elec  = "Oil"
+  ))
+
+ggplot(uk_fossil_long, aes(x = year, y = share, fill = source)) +
+  geom_area(alpha = 0.65, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(values = c(
+    "Coal"        = "#2c3e50",
+    "Natural gas" = "#e67e22",
+    "Oil"         = "#95a5a6"
+  )) +
+  scale_x_continuous(breaks = seq(2000, 2025, 5)) +
+  geom_vline(xintercept = 2013, linetype = "dashed", colour = "grey20") +
+  annotate("text", x = 2013.2, y = 55, label = "Carbon price\nfloor (2013)",
+           size = 3, colour = "grey10", hjust = 0) +
+  labs(
+    title    = "Composition of Fossil Fuel Electricity: Coal, Gas, and Oil",
+    subtitle = "Coal eliminated; gas remains the dominant fossil fuel",
+    x = NULL, y = "Share of electricity generation (%)", fill = "Fuel",
+    caption = "Source: Our World in Data – Energy dataset"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(colour = "grey40"),
+        panel.grid.minor = element_blank())
+```
+
+
+The composition of fossil fuel electricity in the UK reveals two very different stories: the rapid collapse of coal and the continued importance of natural gas. In the early 2000s, coal and gas contributed similar shares of electricity generation, with small fluctuations largely driven by fuel prices. However, this balance begins to break down around 2010, where coal enters a clear and sustained decline.
+
+One important factor behind this shift is the change in relative fuel costs. Around 2010, global gas prices increased, making gas-fired generation more expensive and temporarily slowing its growth. This helps explain the visible dip and volatility in gas share during this period. However, despite these short-term fluctuations, the long-term trend shows gas becoming the dominant fossil fuel as coal declines.
+
+The most significant turning point occurs after 2013 with the introduction of the Carbon Price Floor. This policy effectively placed a minimum price on carbon emissions in the UK power sector. In simple terms, it made it more expensive for power plants to emit CO₂. Since coal produces much more carbon per unit of electricity than gas, it became significantly more costly to run coal plants compared to gas plants.
+
+As a result, electricity generators shifted away from coal very quickly. This is clearly visible in the plot, where coal’s share drops sharply after 2013 and never recovers. The policy did not start the decline entirely, coal was already weakening, but it accelerated the transition by making coal economically unviable in most cases.
+
+Meanwhile, natural gas takes on a more stable but complex role. As coal disappears, gas becomes the primary remaining fossil fuel, effectively acting as a “bridge” between a high-carbon system and a low-carbon one. However, its persistence also highlights a limitation of the transition: by 2025, the UK still depends heavily on gas for reliable electricity generation, particularly when renewable output is variable.
+
+Oil, in contrast, plays a negligible role throughout the entire period and has little impact on overall trends.
+
+Overall, this analysis shows that the UK’s reduction in fossil fuel electricity is largely driven by the elimination of coal rather than a complete phase-out of fossil fuels. While this represents significant progress, the continued reliance on natural gas suggests that the transition remains incomplete and dependent on fossil-based support systems.
+
+This directly addresses Research Question 1 by showing that the decline in fossil fuel electricity is primarily driven by the near-elimination of coal, while natural gas remains structurally embedded in the system.
+
+```{r}
+uk_fossil_long <- uk_electricity %>%
+  select(year, coal_share_elec, gas_share_elec, oil_share_elec) %>%
+  pivot_longer(-year, names_to = "source", values_to = "share") %>%
+  mutate(source = recode(source,
+    coal_share_elec = "Coal",
+    gas_share_elec  = "Gas",
+    oil_share_elec  = "Oil"
+  ))
+
+p2 <- ggplot(uk_fossil_long, aes(x = year, y = share, fill = source)) +
+
+  geom_area(alpha = 0.8, colour = "white", linewidth = 0.3) +
+
+  scale_fill_manual(values = c(
+    "Coal" = "#2C3E50",   # dark
+    "Gas"  = "#E67E22",   # orange
+    "Oil"  = "#BDC3C7"    # grey
+  )) +
+
+  geom_vline(xintercept = 2013, linetype = "dashed", colour = "grey10") +
+
+  annotate("text",
+           x = 2013,
+           y = 60,
+           label = "2013: Carbon price",
+           size = 4,
+           hjust = -0.1) +
+
+  labs(
+    title = "Fossil Fuel Composition",
+    subtitle = "Coal collapsed while gas remains dominant",
+    x = NULL,
+    y = "Share (%)",
+    fill = NULL
+  ) +
+
+  theme_minimal(base_size = 16) +
+
+  theme(
+    plot.title = element_text(face = "bold", size = 20),
+    plot.subtitle = element_text(size = 14),
+    legend.position = "top",
+    panel.grid.minor = element_blank(),
+
+    plot.background  = element_rect(fill = "transparent", colour = NA),
+    panel.background = element_rect(fill = "transparent", colour = NA)
+  )
+
+p2
+```
+```{r}
+ggsave(
+  "uk_fossil_fuel_consumption.png",
+  plot = p2,
+  width = 12,
+  height = 7,
+  dpi = 300,
+  bg = "transparent"
+)
+```
+
+## Growth of Low-Carbon Energy Sources 
+
+The aggregate low-carbon share in Visualisation 1 conceals which technologies are driving growth. A multi-line chart for each low-carbon source reveals their individual trajectories, enabling a more granular answer to RQ2 about which technologies have driven the transition.
+
+```{r}
+uk_lowcarbon_long <- uk_electricity %>%
+  select(year, wind_share_elec, solar_share_elec,
+         hydro_share_elec, biofuel_share_elec, nuclear_share_elec) %>%
+  pivot_longer(-year, names_to = "source", values_to = "share") %>%
+  mutate(source = recode(source,
+    wind_share_elec    = "Wind",
+    solar_share_elec   = "Solar",
+    hydro_share_elec   = "Hydro",
+    biofuel_share_elec = "Biofuel",
+    nuclear_share_elec = "Nuclear"
+  ))
+
+ggplot(uk_lowcarbon_long, aes(x = year, y = share,
+                               colour = source, group = source)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.6, alpha = 0.7) +
+  scale_colour_manual(values = c(
+    "Wind"    = "#2980b9",
+    "Solar"   = "#f1c40f",
+    "Hydro"   = "#1abc9c",
+    "Biofuel" = "#8e44ad",
+    "Nuclear" = "#e74c3c"
+  )) +
+  scale_x_continuous(breaks = seq(2000, 2025, 5)) +
+  labs(
+    title    = "Growth of Individual Low-Carbon Electricity Sources in the UK",
+    subtitle = "Wind is the dominant driver; nuclear share has declined",
+    x = NULL, y = "Share of electricity generation (%)", colour = "Source",
+    caption = "Source: Our World in Data – Energy dataset"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(colour = "grey40"),
+        panel.grid.minor = element_blank())
+```
+
+The breakdown of low-carbon electricity sources shows that the UK’s energy transition is not the result of all technologies growing evenly, but rather a shift driven by a few key technologies, most notably wind power.
+
+The most striking trend is the rapid rise of wind energy. From almost zero in 2000, wind grows steadily and then accelerates sharply after 2010, becoming the dominant source of low-carbon electricity by 2025. This reflects both technological improvements and strong policy support, particularly the expansion of offshore wind. In effect, wind has become the main driver of the UK’s decarbonisation, replacing older forms of low-carbon generation.
+
+In contrast, nuclear power, once the backbone of low-carbon electricity, shows a gradual decline over time. While it remains an important contributor, its share decreases due to the aging of existing plants and the lack of large-scale new capacity. This highlights a key structural shift: the UK is moving away from stable, continuous (baseload) low-carbon generation toward more variable renewable sources.
+
+Other technologies provide additional insight into how the transition has unfolded. Biofuels increase rapidly between around 2012 and 2021, likely reflecting the conversion of former coal plants such as Drax, before stabilising at a moderate level. 
+Solar energy, although smaller in overall share, shows fast growth after 2010, driven by falling technology costs and supportive policies such as feed-in tariffs. Meanwhile, hydro remains relatively constant throughout the period, reflecting geographical limits rather than policy or technological change.
+
+Overall, the transition to low-carbon electricity in the UK is largely a wind-led transformation, supported by a mix of other renewable sources. However, this shift also introduces new challenges. Unlike nuclear, which provides consistent output, wind and solar are variable, meaning their generation depends on weather conditions. As a result, the increasing reliance on these sources implies a need for improved energy storage, grid flexibility, and backup capacity to ensure system reliability.
+
+This answers Research Question 2 by demonstrating that the growth in low-carbon electricity is largely driven by wind power, which has overtaken other technologies and enabled low-carbon sources to surpass fossil fuels.
+
+```{r}
+uk_2025 <- uk_electricity %>%
+  filter(year == 2025) %>%
+  select(
+    wind_share_elec,
+    solar_share_elec,
+    hydro_share_elec,
+    nuclear_share_elec
+  ) %>%
+  pivot_longer(everything(), names_to = "source", values_to = "share") %>%
+  mutate(source = recode(source,
+    wind_share_elec    = "Wind",
+    solar_share_elec   = "Solar",
+    hydro_share_elec   = "Hydro",
+    nuclear_share_elec = "Nuclear"
+  )) %>%
+  arrange(share)
+
+p3 <- ggplot(uk_2025, aes(x = share, y = reorder(source, share), fill = source)) +
+
+  geom_col(width = 0.7) +
+
+  scale_fill_manual(values = c(
+    "Wind"    = "#27AE60",   # green (important)
+    "Solar"   = "#F1C40F",
+    "Hydro"   = "#1ABC9C",
+    "Nuclear" = "#7F8C8D"
+  )) +
+
+  labs(
+    title = "What Powers Low-Carbon Electricity in 2025?",
+    subtitle = "Wind is the dominant source",
+    x = "Share of electricity (%)",
+    y = NULL,
+    fill = NULL
+  ) +
+
+  theme_minimal(base_size = 16) +
+
+  theme(
+    plot.title = element_text(face = "bold", size = 20),
+    plot.subtitle = element_text(size = 14),
+
+    legend.position = "none",
+
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+
+    # Transparent for PowerPoint
+    plot.background  = element_rect(fill = "transparent", colour = NA),
+    panel.background = element_rect(fill = "transparent", colour = NA)
+  )
+
+p3
+
+```
+```{r}
+ggsave(
+  "uk_fossil_fuel_consumption.png",
+  plot = p3,
+  width = 12,
+  height = 7,
+  dpi = 300,
+  bg = "transparent"
+)
+```
+
+
+## Environmental Impact and Structural Decoupling
+
+A scatter plot with a regression line is the most appropriate visualisation for exploring the relationship between two continuous variables. Colouring points by year adds a temporal dimension, showing not only whether the two variables are correlated but whether the relationship has been consistent across the full 26-year period or has shifted over time.
+
+```{r}
+
+label_years <- seq(2000, 2025, 5)
+
+uk_scatter <- uk_electricity %>%
+  filter(!is.na(carbon_intensity_elec), !is.na(fossil_share_elec)) %>%
+  mutate(label = if_else(year %in% label_years,
+                         as.character(year), NA_character_))
+
+ggplot(uk_scatter, aes(x = fossil_share_elec, y = carbon_intensity_elec)) +
+  geom_smooth(method = "lm", se = TRUE, colour = "#2980b9",
+              fill = "#aed6f1", alpha = 0.3, linewidth = 1) +
+  geom_path(colour = "grey70", linewidth = 0.5, linetype = "dotted") +
+  geom_point(aes(colour = year), size = 3.5) +
+  geom_text_repel(aes(label = label), size = 3, colour = "grey30",
+                  box.padding = 0.3, max.overlaps = 10) +
+  scale_colour_gradient(low = "#f39c12", high = "#1a252f", name = "Year") +
+  scale_x_continuous(labels = label_percent(scale = 1)) +
+  labs(
+    title    = "Fossil Fuel Share vs Carbon Intensity of UK Electricity",
+    subtitle = "A strong positive relationship confirms structural decarbonisation",
+    x        = "Fossil fuel share of electricity (%)",
+    y        = "Carbon intensity (gCO₂/kWh)",
+    caption  = "Source: Our World in Data – Energy dataset."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(colour = "grey40"),
+        panel.grid.minor = element_blank(),
+        legend.position = "right")
+
+```
+
+
+The strong positive relationship between fossil fuel share and carbon intensity provides clear evidence of the UK’s progress toward decarbonisation. As the share of electricity generated from fossil fuels declines, carbon intensity falls in a consistent and predictable way. In practical terms, this means that reducing reliance on fossil fuels has directly translated into lower emissions across the electricity system.
+
+The plot also shows how this transition has unfolded over time. Earlier years (around 2000) are clustered at the top-right of the chart, reflecting both high fossil fuel dependence and high carbon intensity (around 500 gCO₂/kWh). Over time, the data points move steadily toward the bottom-left, reaching much lower levels of carbon intensity by 2025 (close to 200 gCO₂/kWh). The dotted path connecting the points highlights that this shift has been gradual and consistent rather than erratic, suggesting a sustained structural change rather than short-term fluctuations.
+
+A closer look at the early period (2000–2010) shows relatively little movement. During this time, fossil fuel dependence remained high and reductions in carbon intensity were limited. This indicates that meaningful progress had not yet begun. In contrast, the period after 2010 shows much larger year-to-year changes, with data points spreading out more clearly along the downward trend. This suggests that the decarbonisation process accelerated significantly in the 2010s, likely driven by the phase-out of coal and the rapid expansion of renewable energy, particularly wind.
+
+Overall, the stability of the relationship between fossil fuel share and carbon intensity indicates that the UK’s progress is not accidental or cyclical, but structural. The continued alignment of recent data points with the overall trend also suggests that reducing fossil fuel use remains an effective and reliable way to lower emissions in the power sector.
+
+This directly addresses Resaerch Question 3 by confirming that the decline in carbon intensity reflects a structural change in the electricity system, rather than short-term fluctuations.
+
+```{r}
+label_years <- seq(2000, 2025, 5)
+
+uk_scatter <- uk_electricity %>%
+  filter(!is.na(carbon_intensity_elec), !is.na(fossil_share_elec)) %>%
+  mutate(label = if_else(year %in% label_years,
+                         as.character(year), NA_character_))
+
+p4 <- ggplot(uk_scatter, aes(x = fossil_share_elec, y = carbon_intensity_elec)) +
+
+  geom_smooth(method = "lm", se = TRUE,
+              colour = "#2980b9",
+              fill = "#aed6f1",
+              alpha = 0.3,
+              linewidth = 0.7) +
+
+  geom_path(colour = "grey70",
+            linewidth = 0.6,
+            linetype = "dotted") +
+
+  geom_point(aes(colour = year),
+             size = 4) +
+
+  geom_text_repel(
+    aes(label = label),
+    size = 4,
+    colour = "grey20",
+    box.padding = 0.5,
+    point.padding = 0.3,
+    max.overlaps = 10
+  ) +
+
+  scale_colour_gradient(
+    low = "#f39c12",
+    high = "#1a252f",
+    name = "Year"
+  ) +
+
+  scale_x_continuous(labels = label_percent(scale = 1)) +
+
+  labs(
+    title    = "Fossil Fuel Share vs Carbon Intensity",
+    subtitle = "Reducing fossil fuels leads to lower emissions",
+    x        = "Fossil fuel share (%)",
+    y        = "Carbon intensity (gCO2/kWh)",
+    caption  = "Source: Our World in Data"
+  ) +
+
+  theme_minimal(base_size = 18) +
+
+  theme(
+    # Titles
+    plot.title    = element_text(size = 24, face = "bold"),
+    plot.subtitle = element_text(size = 18, colour = "grey30"),
+
+    # Axis
+    axis.text  = element_text(size = 14),
+    axis.title = element_text(size = 16),
+
+    # Legend
+    legend.position = "right",
+    legend.title    = element_text(size = 14),
+    legend.text     = element_text(size = 12),
+
+    # Clean look
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+
+    # Caption
+    plot.caption = element_text(size = 12, colour = "grey40"),
+
+    # Transparent
+    plot.background  = element_rect(fill = "transparent", colour = NA),
+    panel.background = element_rect(fill = "transparent", colour = NA)
+  )
+
+p4
+
+```
+
+```{r}
+ggsave(
+  "uk_fossil_fuel_consumption.png",
+  plot = p4,
+  width = 12,
+  height = 7,
+  dpi = 300,
+  bg = "transparent"
+)
+```
+
+
+## Economic Growth vs. Energy Consumption per Capita
+
+This visualisation examines the relationship between economic growth and energy demand, allowing us to assess whether the UK has achieved a decoupling of GDP from energy consumption. It moves beyond electricity generation trends to address a broader structural question: whether economic growth can be sustained without a corresponding increase in energy use.
+
+```{r}
+
+label_years <- seq(2000, 2025, 5)
+
+uk_decouple <- uk_electricity %>%
+  filter(!is.na(gdp), !is.na(energy_per_capita)) %>%
+  mutate(label = if_else(year %in% label_years,
+                         as.character(year), NA_character_))
+
+ggplot(uk_decouple, aes(x = gdp, y = energy_per_capita)) +
+  geom_smooth(method = "loess", se = TRUE,
+              colour = "#1f4e79",
+              fill = "#a6c8ff",
+              alpha = 0.3,
+              linewidth = 1) +
+  geom_path(colour = "grey70", linewidth = 0.5, linetype = "dotted") +
+  geom_point(aes(colour = year), size = 3.5) +
+  geom_text_repel(aes(label = label),
+                  size = 3,
+                  colour = "grey30",
+                  box.padding = 0.3,
+                  max.overlaps = 10) +
+  scale_colour_gradient(low = "#f39c12", high = "#1a252f", name = "Year") +
+  scale_x_continuous(labels = scales::label_number(scale = 1e-12, suffix = "T")) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  labs(
+    title    = "Economic Growth vs Energy Consumption per Capita in the UK",
+    subtitle = "Evidence of partial decoupling between GDP and energy demand",
+    x        = "GDP (trillions USD)",
+    y        = "Energy consumption per capita (kWh)",
+    caption  = "Source: Our World in Data – Energy dataset."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 12),
+    plot.subtitle    = element_text(colour = "grey40"),
+    panel.grid.minor = element_blank(),
+    legend.position  = "right"
+  )
+
+```
+
+
+The relationship between GDP and energy consumption per capita suggests that the UK has made significant progress toward decoupling economic growth from energy demand. Traditionally, economic expansion was closely linked to rising energy use. However, the plot shows a different pattern: as GDP increases from around $2.0 trillion to over $2.6 trillion, energy consumption per person falls from roughly 45,000 kWh to below 30,000 kWh.
+
+This downward trend indicates that the UK is producing more economic output while using less energy per person. This is often described as “decoupling,” and it likely reflects a combination of factors, including improvements in energy efficiency and a shift away from energy-intensive industries toward a more service-based economy.
+
+The LOESS curve provides additional insight into how this change has unfolded over time. Between roughly 2005 and 2015, the decline in energy use per capita becomes noticeably steeper, suggesting a period of rapid efficiency gains or structural change. After this period, the curve begins to flatten, indicating that reductions in energy consumption continue but at a slower pace. This may suggest that the UK is approaching a lower baseline level of energy use, where further reductions become more difficult without major technological or behavioural changes.
+
+Overall, this pattern supports the idea that the UK’s decarbonisation is not only driven by changes in the electricity mix but also by a reduction in overall energy demand. However, this result should be interpreted with some caution, as part of the decline may also reflect structural changes such as de-industrialisation rather than purely efficiency improvements.
+
+
+
+# Conclusion
+
+```{r}
+kable(
+  data.frame(
+    `Research Question` = c(
+      "RQ1 – Fossil fuel electricity",
+      "RQ2 – Low-carbon growth",
+      "RQ3 – Decarbonisation outcomes"
+    ),
+    `Key Finding` = c(
+      "Coal share collapsed from ~30% to under 1% by 2025, driven by the carbon price floor after 2013. Gas replaced coal as the dominant fossil fuel and persists at ~30% of generation, the most significant remaining structural barrier.",
+      "Low-carbon sources surpassed fossil fuels around 2017. Wind is the primary driver, rising from near zero to over 25%. Nuclear has declined over the period, partially offsetting renewable gains. Solar has grown rapidly but from a low base.",
+      "Carbon intensity fell from 522 to 217 gCO₂/kWh, a reduction of over 58%. The strong linear relationship between fossil share and carbon intensity across all 26 years suggests this as structural decarbonisation rather than cyclical variation."
+    )
+  ),
+  caption = "Table 3. Summary of findings by research question.",
+  col.names = c("Research Question", "Key Finding")
+)
+
+```
+ 
+The UK’s electricity transition over the past 26 years represents one of the most significant examples of power sector decarbonisation among developed economies. The near-elimination of coal, the rapid expansion of renewable energy, particularly wind, and the substantial reduction in carbon intensity all point to a genuine structural transformation rather than short-term or cyclical change.
+
+However, this progress is not without limitations. First, natural gas remains embedded in the system as a key source of dispatchable power. While it has played an important role in enabling the transition away from coal, its continued presence highlights an ongoing dependency that exposes the UK to price volatility and delays full decarbonisation. Second, the gradual decline in nuclear generation represents an important counter-trend. As a stable low-carbon source, its reduction has limited the overall pace of emissions reduction and increased reliance on more variable renewable sources.
+
+Finally, while the data suggests a degree of decoupling between economic growth and energy consumption, this should be interpreted cautiously. Part of the observed decline in energy use per capita may reflect structural changes in the economy, such as deindustrialisation, rather than purely improvements in efficiency. This indicates that progress on the demand side may be partially overstated when viewed in aggregate.
+
+Overall, the UK has made substantial progress in transforming its electricity system, demonstrating that rapid decarbonisation is achievable with the right combination of policy, technology, and market conditions. However, the remaining challenge lies in addressing residual dependence on natural gas and ensuring system reliability in a grid increasingly dominated by variable renewable energy. Achieving this will require continued investment in energy storage, grid flexibility, and other low-carbon technologies to support the next phase of the transition. In this context, the findings of this analysis contribute to broader global efforts aligned with Sustainable Development Goals such as SDG 7 (Affordable and Clean Energy) and SDG 13 (Climate Action).
+
+
+# Recommendation:
+
+1. **Break down the low-carbon share further**: It would be useful to separate offshore and onshore wind to better understand how much of the growth is linked to government support and subsidy policies.
+2. **Take a closer look at gas dependency**: Running a simple scenario analysis on different timelines for phasing out gas could give a clearer picture of how carbon intensity might change in the future.
+3. **Compare the UK with other countries**: Looking at countries like France (which relies heavily on nuclear), Germany (with its Energiewende), and Denmark (a leader in wind energy) would help put the UK’s progress into context.
+4. **Consider grid stability, not just emissions**: Including things like curtailment, interconnector flows, and battery storage would give a more complete view of whether the system is not only cleaner, but also reliable.
+
+
+# References
+Barrett, J., Owen, A., & Taylor, P. (2022). The UK's carbon footprint and the challenge of consumption-based accounting. Climate Policy, 22(3), 291–305.
+
+International Energy Agency (IEA). (2022). United Kingdom 2022: Energy policy review. IEA Publications.
+
+IPCC. (2022). Climate change 2022: Mitigation of climate change. Contribution of Working Group III to the Sixth Assessment Report. Cambridge University Press.
+
+Sovacool, B. K., Turnheim, B., Hook, A., & Martiskainen, M. (2019). Destroying abundance? Welfare implications of energy transitions. Energy Research & Social Science, 56, 101216.
+
+Stern, N. (2007). The economics of climate change: The Stern review. Cambridge University Press.
+
+UK Government. (2019). Net zero: The UK's contribution to stopping global warming. Committee on Climate Change.
+
+Bruns, S. B., Gross, C., & Stern, D. I. (2020). Is there really Granger causality between energy use and output? The Energy Journal, 35(4), 101–134
+
+Our World in Data. (2024). Energy dataset. Retrieved from https://ourworldindata.org/energy
+
